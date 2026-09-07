@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/cron/sync"];
+// /confidentialite et /conditions doivent rester lisibles sans connexion :
+// Google (écran de consentement OAuth) et Julien lui-même y renvoient depuis l'extérieur.
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/cron/sync", "/confidentialite", "/conditions"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
