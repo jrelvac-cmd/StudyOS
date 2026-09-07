@@ -10,6 +10,7 @@ import { syncNowAction } from "@/lib/actions";
 import type { EventWithSubject } from "@/lib/db/events";
 import type { Subject } from "@/lib/db/types";
 import { isoDate, localParts, todayKey, weekDays } from "@/lib/dates";
+import { subjectColor } from "@/lib/subjectColor";
 import { cn } from "@/lib/utils";
 import { EventPanel } from "./EventPanel";
 import { ManualEventDialog } from "./ManualEventDialog";
@@ -181,27 +182,33 @@ export function WeekView({ weekStart, events, subjects, googleConnected, lastSyn
                 <p className="text-xs text-text-3">Rien de prévu</p>
               ) : (
                 <ul className="stagger flex flex-col gap-2">
-                  {dayEvents.map((ev) => (
-                    <li key={ev.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelected(ev)}
-                        className="pressable card flex w-full items-center gap-3 border-l-2 border-l-accent px-4 py-3 text-left"
-                      >
-                        <div className="w-14 shrink-0 text-xs text-text-2">
-                          <div>{localParts(ev.starts_at).time}</div>
-                          <div className="text-text-3">{localParts(ev.ends_at).time}</div>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{ev.subject?.name ?? ev.title}</div>
-                          <div className="truncate text-xs text-text-3">
-                            {ev.room ?? ""}
-                            {ev.course_count > 0 && <span className="ml-1 text-accent">· {ev.course_count} cours</span>}
+                  {dayEvents.map((ev) => {
+                    const color = subjectColor(ev.subject_id);
+                    return (
+                      <li key={ev.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelected(ev)}
+                          className="pressable card flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left"
+                          style={{ borderLeftColor: color.border }}
+                        >
+                          <div className="w-14 shrink-0 text-xs text-text-2">
+                            <div>{localParts(ev.starts_at).time}</div>
+                            <div className="text-text-3">{localParts(ev.ends_at).time}</div>
                           </div>
-                        </div>
-                      </button>
-                    </li>
-                  ))}
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium" style={{ color: color.text }}>
+                              {ev.subject?.name ?? ev.title}
+                            </div>
+                            <div className="truncate text-xs text-text-3">
+                              {ev.room ?? ""}
+                              {ev.course_count > 0 && <span className="ml-1 text-accent">· {ev.course_count} cours</span>}
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>
@@ -222,15 +229,18 @@ export function WeekView({ weekStart, events, subjects, googleConnected, lastSyn
 }
 
 function EventBlock({ event, top, height, onClick }: { event: Placed; top: number; height: number; onClick: () => void }) {
+  const color = subjectColor(event.subject_id);
   return (
     <button
       type="button"
       onClick={onClick}
-      className="pressable absolute inset-x-1 flex flex-col overflow-hidden rounded-lg border border-accent/30 bg-accent-dim px-2 py-1.5 text-left hover:border-accent/60"
-      style={{ top: top + 1, height: Math.max(height - 2, 22) }}
+      className="pressable absolute inset-x-1 flex flex-col overflow-hidden rounded-lg border px-2 py-1.5 text-left"
+      style={{ top: top + 1, height: Math.max(height - 2, 22), borderColor: color.border, backgroundColor: color.bg }}
       title={`${event.subject?.name ?? event.title} · ${localParts(event.starts_at).time}–${localParts(event.ends_at).time}`}
     >
-      <span className="truncate text-xs font-semibold text-accent">{event.subject?.name ?? event.title}</span>
+      <span className="truncate text-xs font-semibold" style={{ color: color.text }}>
+        {event.subject?.name ?? event.title}
+      </span>
       {height > 40 && (
         <span className="truncate text-[11px] text-text-2">
           {localParts(event.starts_at).time}
