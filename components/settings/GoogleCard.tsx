@@ -14,9 +14,10 @@ type Props = {
   calendars: { id: string; name: string; primary: boolean }[];
   lastSyncedAt: string | null;
   flash: string | null;
+  redirectUri: string;
 };
 
-export function GoogleCard({ configured, connected, email, calendarId, calendars, lastSyncedAt, flash }: Props) {
+export function GoogleCard({ configured, connected, email, calendarId, calendars, lastSyncedAt, flash, redirectUri }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(
@@ -102,9 +103,15 @@ export function GoogleCard({ configured, connected, email, calendarId, calendars
         <div className="mt-4 flex flex-col gap-3">
           <p className="text-sm text-text-2">Connecte ton compte pour voir ton emploi du temps dans le planning.</p>
           {configured ? (
-            <a href="/api/google/connect" className="btn-primary self-start">
-              Connecter Google Calendar
-            </a>
+            <>
+              <a href="/api/google/connect" className="btn-primary self-start">
+                Connecter Google Calendar
+              </a>
+              <p className="text-xs text-text-3">
+                Dans Google Cloud, ton client OAuth (type « Application Web ») doit déclarer exactement cette URI de redirection :
+              </p>
+              <code className="select-all break-all rounded-lg bg-surface-3 px-2.5 py-1.5 font-mono text-xs text-text">{redirectUri}</code>
+            </>
           ) : (
             <p className="text-xs text-text-3">
               Configure d&apos;abord GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, APP_URL et TOKEN_ENCRYPTION_KEY (voir .env.example).

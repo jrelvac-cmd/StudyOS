@@ -41,6 +41,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/reglage
           calendars={calendars}
           lastSyncedAt={google?.last_synced_at ?? null}
           flash={googleParam}
+          redirectUri={`${(process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "")}/api/google/callback`}
         />
 
         <section className="card px-5 py-5">
