@@ -1,0 +1,284 @@
+@import "tailwindcss";
+
+/*
+ * Direction artistique : noir et vert. Fond noir dominant, une seule couleur
+ * d'accent (vert) pour les actions, les états actifs et ce qui est mis en avant.
+ * Pas de dégradés, pas de couleurs additionnelles.
+ */
+:root {
+  --bg: #050505;
+  --surface: #111111;
+  --surface-2: #181818;
+  --surface-3: #202020;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --accent: #30d158;
+  --accent-strong: #3fe06a;
+  --accent-dim: rgba(48, 209, 88, 0.14);
+  --accent-glow: rgba(48, 209, 88, 0.35);
+  --text: #f5f5f5;
+  --text-2: rgba(245, 245, 245, 0.64);
+  --text-3: rgba(245, 245, 245, 0.42);
+  --danger: #ff453a;
+
+  /*
+   * Ressorts d'après Apple (damping ratio + response), échantillonnés en linear().
+   *   spring       : amorti critique, response 0,4 s — l'arrivée de tout élément.
+   *   spring-quick : amorti critique, response 0,25 s — bascules, retours d'appui.
+   *   spring-bounce: damping 0,8 — un geste qui avait de l'élan.
+   */
+  --dur-spring: 540ms;
+  --ease-spring: linear(0, 0.0138, 0.0494, 0.0992, 0.1577, 0.2209, 0.2857, 0.3499, 0.412, 0.471, 0.5263, 0.5776, 0.6246, 0.6675, 0.7064, 0.7413, 0.7727, 0.8006, 0.8255, 0.8475, 0.867, 0.8842, 0.8993, 0.9125, 0.9241, 0.9342, 0.9431, 0.9508, 0.9575, 0.9633, 0.9683, 0.9727, 0.9765, 0.9798, 0.9826, 0.9851, 0.9872, 0.989, 0.9905, 0.9919, 0.9931, 0.994, 0.9949, 0.9956, 0.9963, 0.9968, 0.9973, 0.9977, 1);
+  --dur-spring-quick: 340ms;
+  --ease-spring-quick: var(--ease-spring);
+  --dur-spring-bounce: 450ms;
+  --ease-spring-bounce: linear(0, 0.0128, 0.0467, 0.096, 0.1558, 0.2223, 0.2922, 0.363, 0.4327, 0.5, 0.5637, 0.6232, 0.6779, 0.7276, 0.7723, 0.8122, 0.8472, 0.8778, 0.9042, 0.9267, 0.9457, 0.9616, 0.9747, 0.9854, 0.9939, 1.0006, 1.0056, 1.0094, 1.012, 1.0138, 1.0147, 1.0151, 1.0151, 1.0147, 1.014, 1.0131, 1.0121, 1.0111, 1.01, 1.0089, 1.0079, 1.0069, 1.006, 1.0051, 1.0044, 1.0037, 1.003, 1.0025, 1);
+}
+
+@supports not (animation-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-spring-bounce: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-dim: var(--accent-dim);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-danger: var(--danger);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html {
+  background: var(--bg);
+  color-scheme: dark;
+  font-optical-sizing: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { letter-spacing: -0.02em; line-height: 1.1; }
+h2 { letter-spacing: -0.015em; line-height: 1.15; }
+
+::selection { background: var(--accent-dim); color: var(--text); }
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-border bg-surface;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-black hover:bg-accent-strong disabled:opacity-40 disabled:hover:bg-accent;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-border-strong bg-surface-2 px-5 py-2.5 text-sm font-medium text-text hover:bg-surface-3 disabled:opacity-40;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-text-2 hover:bg-surface-2 hover:text-text disabled:opacity-40;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-danger/30 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-40;
+  }
+  .icon-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-full text-text-2 hover:bg-surface-2 hover:text-text disabled:opacity-40;
+  }
+  .field {
+    @apply w-full rounded-xl border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-accent/60 focus:ring-2 focus:ring-accent/20;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-3;
+  }
+  .pill-group {
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface p-1;
+  }
+  .pill {
+    @apply rounded-full px-3 py-1.5 text-xs font-medium text-text-2 hover:text-text;
+  }
+  .pill-active {
+    @apply bg-accent-dim text-accent;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-text-2;
+  }
+  .badge-accent {
+    @apply border-accent/30 bg-accent-dim text-accent;
+  }
+  .badge-warn {
+    @apply border-white/20 bg-white/5 text-text;
+  }
+}
+
+/* Retour à l'appui : enfoncement immédiat (100 ms), relâchement par ressort. */
+.pressable, .btn-primary, .btn-secondary, .btn-ghost, .btn-danger, .icon-btn, .pill {
+  transform: translateZ(0);
+  transition:
+    transform var(--dur-spring-quick) var(--ease-spring-quick),
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+.pressable:active, .btn-primary:active, .btn-secondary:active, .btn-ghost:active, .btn-danger:active, .icon-btn:active, .pill:active {
+  transform: scale(0.96);
+  transition-duration: 100ms;
+  transition-timing-function: ease-out;
+}
+.pressable-strong:active { transform: scale(0.9); }
+
+/* Arrivée des pages et cascades. */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes materialize {
+  from { opacity: 0; transform: scale(0.96); filter: blur(8px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+.page-enter { animation: page-enter var(--dur-spring) var(--ease-spring) both; }
+.materialize { animation: materialize var(--dur-spring) var(--ease-spring) both; }
+.fade-in { animation: fade-in 200ms ease both; }
+.stagger > * { animation: rise-in var(--dur-spring) var(--ease-spring) both; }
+.stagger > :nth-child(1) { animation-delay: 30ms; }
+.stagger > :nth-child(2) { animation-delay: 80ms; }
+.stagger > :nth-child(3) { animation-delay: 130ms; }
+.stagger > :nth-child(4) { animation-delay: 180ms; }
+.stagger > :nth-child(5) { animation-delay: 230ms; }
+.stagger > :nth-child(6) { animation-delay: 280ms; }
+.stagger > :nth-child(n + 7) { animation-delay: 320ms; }
+
+/* Code d'accès : secousse sur erreur (pas un geste, une réponse). */
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+.shake { animation: shake 500ms ease both; }
+
+/* Point de saisie du code : se remplit par ressort. */
+.code-dot { transition: background-color 120ms ease, transform var(--dur-spring-bounce) var(--ease-spring-bounce); }
+.code-dot-filled { transform: scale(1.15); }
+
+/* Interrupteur : le bouton glisse par ressort, sans rebond. */
+.switch-knob { transition: transform var(--dur-spring-quick) var(--ease-spring-quick); }
+
+/* Barre translucide : le contenu défile dessous. */
+.chrome {
+  background: rgba(5, 5, 5, 0.72);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+
+/* Bord de défilement : le contenu s'estompe dans le fond plutôt que de buter sur un trait. */
+.scroll-edge-top {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16px);
+  mask-image: linear-gradient(to bottom, transparent, #000 16px);
+}
+
+/* Contenu de cours (HTML issu de Word ou de l'éditeur) et markdown des réponses. */
+.prose-course {
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+.prose-course h1 { font-size: 1.5rem; font-weight: 700; margin: 1.4em 0 0.5em; }
+.prose-course h2 { font-size: 1.25rem; font-weight: 650; margin: 1.3em 0 0.45em; }
+.prose-course h3 { font-size: 1.08rem; font-weight: 600; margin: 1.1em 0 0.4em; }
+.prose-course h4 { font-size: 1rem; font-weight: 600; margin: 1em 0 0.35em; }
+.prose-course h1:first-child, .prose-course h2:first-child, .prose-course h3:first-child { margin-top: 0; }
+.prose-course p { margin: 0 0 0.8em; }
+.prose-course ul, .prose-course ol { margin: 0 0 0.9em; padding-left: 1.4em; }
+.prose-course ul { list-style: disc; }
+.prose-course ol { list-style: decimal; }
+.prose-course li { margin: 0.2em 0; }
+.prose-course li > p { margin: 0; }
+.prose-course strong { color: var(--text); font-weight: 650; }
+.prose-course em { font-style: italic; }
+.prose-course a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.prose-course blockquote { border-left: 2px solid var(--accent); padding-left: 1em; color: var(--text-2); margin: 0.8em 0; }
+.prose-course code { font-family: var(--font-mono); font-size: 0.88em; background: var(--surface-3); padding: 0.1em 0.35em; border-radius: 6px; }
+.prose-course pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 0.9em 1em; overflow-x: auto; margin: 0 0 0.9em; }
+.prose-course pre code { background: none; padding: 0; }
+.prose-course table { border-collapse: collapse; width: 100%; margin: 0 0 1em; font-size: 0.9em; }
+.prose-course th, .prose-course td { border: 1px solid var(--border-strong); padding: 0.45em 0.7em; text-align: left; vertical-align: top; }
+.prose-course th { background: var(--surface-2); font-weight: 600; }
+.prose-course hr { border: 0; border-top: 1px solid var(--border); margin: 1.4em 0; }
+.prose-course img { max-width: 100%; border-radius: 12px; }
+.prose-course .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.3em 0; margin: 0.6em 0 1em; }
+/* Une formule ne se coupe jamais entre deux lignes : elle défile si elle est trop large. */
+.prose-course .katex { font-size: 1.05em; white-space: nowrap; }
+.prose-course p > .katex, .prose-course li > .katex { display: inline-block; max-width: 100%; vertical-align: middle; }
+
+/* Éditeur Tiptap. */
+.tiptap { outline: none; min-height: 50vh; }
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-3);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Grille du planning. */
+.planning-grid { background-image: linear-gradient(var(--border) 1px, transparent 1px); }
+
+/* Impression d'une fiche : fond blanc, texte noir, rien d'autre. */
+@media print {
+  html, body { background: #fff !important; color: #000 !important; }
+  .no-print { display: none !important; }
+  .print-sheet { color: #000; }
+  .print-sheet strong, .print-sheet h1, .print-sheet h2, .print-sheet h3 { color: #000; }
+  .print-sheet code, .print-sheet pre, .print-sheet th { background: #f2f2f2 !important; }
+  .print-sheet blockquote { color: #333; }
+  .print-sheet a { color: #000; }
+  .print-sheet th, .print-sheet td { border-color: #999; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter, .materialize, .stagger > * { animation: fade-in 200ms ease both; }
+  .shake { animation: none; }
+  .pressable, .btn-primary, .btn-secondary, .btn-ghost, .btn-danger, .icon-btn, .pill,
+  .pressable:active, .btn-primary:active, .btn-secondary:active, .btn-ghost:active, .btn-danger:active, .icon-btn:active, .pill:active {
+    transform: none;
+    transition-duration: 100ms;
+  }
+  .pressable:active, .btn-primary:active, .btn-secondary:active, .btn-ghost:active, .btn-danger:active, .icon-btn:active, .pill:active { filter: brightness(0.85); }
+  .switch-knob, .code-dot { transition: none; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .chrome { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border: rgba(255, 255, 255, 0.3);
+    --border-strong: rgba(255, 255, 255, 0.45);
+    --text-2: rgba(245, 245, 245, 0.85);
+    --text-3: rgba(245, 245, 245, 0.7);
+  }
+}
