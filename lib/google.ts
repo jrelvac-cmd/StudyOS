@@ -1,6 +1,6 @@
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/supabase/admin";
-import { subjectForEventTitle } from "@/lib/db/subjects";
+import { loadAliasMap, subjectForEventTitle } from "@/lib/db/subjects";
 import type { GoogleTokens } from "@/lib/db/types";
 
 const SCOPES = ["https://www.googleapis.com/auth/calendar.readonly", "openid", "email"].join(" ");
@@ -181,7 +181,7 @@ export async function syncCalendar() {
     pageToken = page.nextPageToken;
   } while (pageToken);
 
-  const cache = new Map<string, string>();
+  const aliases = await loadAliasMap();
   const rows: {
     google_id: string;
     source: "google";
@@ -197,11 +197,14 @@ export async function syncCalendar() {
     // Les événements « journée entière » (vacances, rappels) ne sont pas des cours.
     if (ev.status === "cancelled" || !ev.start?.dateTime || !ev.end?.dateTime) continue;
     const title = (ev.summary ?? "").trim() || "Sans titre";
+    const { subject_id, hidden } = await subjectForEventTitle(title, aliases);
+    // Un titre masqué (TD d'un autre groupe…) n'entre pas dans le planning.
+    if (hidden) continue;
     rows.push({
       google_id: ev.id,
       source: "google",
       title,
-      subject_id: await subjectForEventTitle(title, cache),
+      subject_id,
       starts_at: ev.start.dateTime,
       ends_at: ev.end.dateTime,
       room: ev.location?.trim() || null,
@@ -215,7 +218,7 @@ export async function syncCalendar() {
     if (error) throw error;
   }
 
-  // Ce qui a disparu du calendrier dans la fenêtre disparaît du planning.
+  // Ce qui a disparu du calendrier (ou a été masqué) dans la fenêtre disparaît du planning.
   const keep = new Set(rows.map((r) => r.google_id));
   const { data: existing } = await client
     .from("calendar_events")

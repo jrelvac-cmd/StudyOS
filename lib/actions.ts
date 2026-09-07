@@ -26,6 +26,7 @@ import {
   mergeSubjects as dbMergeSubjects,
   reassignAlias as dbReassignAlias,
   renameSubject as dbRenameSubject,
+  setAliasHidden as dbSetAliasHidden,
 } from "@/lib/db/subjects";
 import type { ClassificationStatus } from "@/lib/db/types";
 import { localParts, localToUtc } from "@/lib/dates";
@@ -280,6 +281,17 @@ export async function mergeSubjectsAction(sourceId: string, targetId: string): P
 export async function reassignAliasAction(aliasId: string, subjectId: string) {
   await dbReassignAlias(aliasId, subjectId);
   revalidateAll();
+}
+
+export async function setAliasHiddenAction(aliasId: string, hidden: boolean): Promise<Result> {
+  try {
+    await dbSetAliasHidden(aliasId, hidden);
+    if (!hidden) await syncCalendar().catch(() => undefined);
+    revalidateAll();
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
 }
 
 export async function deleteSubjectAction(id: string) {

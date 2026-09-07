@@ -8,6 +8,7 @@ export type SubjectAlias = {
   id: string;
   alias: string;
   subject_id: string;
+  hidden: boolean;
 };
 
 export type CalendarEvent = {

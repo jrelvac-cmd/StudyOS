@@ -16,6 +16,7 @@ type Props = {
   flash: string | null;
   reason: string | null;
   redirectUri: string;
+  googleEventCount: number;
 };
 
 function flashMessage(flash: string | null, reason: string | null) {
@@ -39,7 +40,7 @@ function flashMessage(flash: string | null, reason: string | null) {
   }
 }
 
-export function GoogleCard({ configured, connected, email, calendarId, calendars, lastSyncedAt, flash, reason, redirectUri }: Props) {
+export function GoogleCard({ configured, connected, email, calendarId, calendars, lastSyncedAt, flash, reason, redirectUri, googleEventCount }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(flashMessage(flash, reason));
@@ -86,6 +87,15 @@ export function GoogleCard({ configured, connected, email, calendarId, calendars
                   </option>
                 ))}
               </select>
+              <p className={`mt-1.5 text-xs ${googleEventCount === 0 && lastSyncedAt ? "text-danger" : "text-text-3"}`}>
+                {lastSyncedAt
+                  ? googleEventCount === 0
+                    ? calendars.length > 1
+                      ? "Aucun cours trouvé dans cet agenda (60 jours en arrière, 120 en avant). Tes cours sont peut-être dans un autre agenda : choisis-le ci-dessus."
+                      : "Aucun cours trouvé dans cet agenda (60 jours en arrière, 120 en avant)."
+                    : `${googleEventCount} créneaux importés depuis cet agenda.`
+                  : null}
+              </p>
             </div>
           )}
           <div className="flex flex-wrap gap-2">

@@ -11,7 +11,7 @@ export async function listSubjects(): Promise<Subject[]> {
 export async function listAliases(): Promise<SubjectAlias[]> {
   const { data, error } = await db().from("subject_aliases").select("*").order("alias");
   if (error) throw error;
-  return data as SubjectAlias[];
+  return (data as SubjectAlias[]).map((a) => ({ ...a, hidden: !!a.hidden }));
 }
 
 export async function getSubject(id: string): Promise<Subject | null> {
@@ -29,30 +29,47 @@ export async function createSubject(name: string): Promise<Subject> {
 }
 
 /**
- * Le titre d'un événement Google est le nom de la matière. La première fois,
- * la matière est créée et le titre mémorisé comme alias ; ensuite l'alias
- * l'emporte, ce qui permet à Julien de réassigner un titre à une autre matière.
+ * Nom de matière déduit d'un titre d'événement : la partie avant le premier
+ * « - » entouré d'espaces. Les emplois du temps universitaires y accolent le
+ * type de séance et le groupe (« Microéconomie I : consommateur et firme - TD - GR 1 »).
  */
-export async function subjectForEventTitle(title: string, cache: Map<string, string>): Promise<string> {
+export function subjectNameFromTitle(title: string) {
+  const first = title.split(/\s+[-–—]\s+/)[0]?.trim();
+  return first || title.trim();
+}
+
+export type AliasMap = Map<string, { subject_id: string; hidden: boolean }>;
+
+export async function loadAliasMap(): Promise<AliasMap> {
+  const aliases = await listAliases();
+  return new Map(aliases.map((a) => [a.alias, { subject_id: a.subject_id, hidden: a.hidden }]));
+}
+
+/**
+ * Le titre d'un événement Google est mémorisé comme alias. La première fois,
+ * la matière est déduite du titre et créée ; ensuite l'alias l'emporte, ce qui
+ * permet à Julien de réassigner un titre à une autre matière ou de le masquer.
+ */
+export async function subjectForEventTitle(title: string, aliases: AliasMap): Promise<{ subject_id: string; hidden: boolean }> {
   const key = normalizeTitle(title);
-  const cached = cache.get(key);
-  if (cached) return cached;
+  const known = aliases.get(key);
+  if (known) return known;
 
-  const { data: alias } = await db().from("subject_aliases").select("subject_id").eq("alias", key).maybeSingle();
-  if (alias) {
-    cache.set(key, alias.subject_id);
-    return alias.subject_id as string;
-  }
-
-  const subject = await createSubject(title);
+  const subject = await createSubject(subjectNameFromTitle(title));
   await db().from("subject_aliases").upsert({ alias: key, subject_id: subject.id }, { onConflict: "alias" });
-  cache.set(key, subject.id);
-  return subject.id;
+  const entry = { subject_id: subject.id, hidden: false };
+  aliases.set(key, entry);
+  return entry;
 }
 
 export async function renameSubject(id: string, name: string) {
   const { error } = await db().from("subjects").update({ name: name.trim() }).eq("id", id);
   if (error) throw error;
+}
+
+async function googleEventIdsForAlias(alias: string) {
+  const { data: events } = await db().from("calendar_events").select("id, title").eq("source", "google");
+  return (events ?? []).filter((e) => normalizeTitle(e.title) === alias).map((e) => e.id);
 }
 
 export async function reassignAlias(aliasId: string, subjectId: string) {
@@ -64,9 +81,21 @@ export async function reassignAlias(aliasId: string, subjectId: string) {
     .single();
   if (error) throw error;
   // Les événements déjà synchronisés suivent le nouveau mapping.
-  const { data: events } = await db().from("calendar_events").select("id, title").eq("source", "google");
-  const ids = (events ?? []).filter((e) => normalizeTitle(e.title) === alias.alias).map((e) => e.id);
+  const ids = await googleEventIdsForAlias(alias.alias);
   if (ids.length) await db().from("calendar_events").update({ subject_id: subjectId }).in("id", ids);
+}
+
+/** Masquer un titre retire ses créneaux du planning ; le démasquer les réimporte à la prochaine synchro. */
+export async function setAliasHidden(aliasId: string, hidden: boolean) {
+  const { data: alias, error } = await db().from("subject_aliases").update({ hidden }).eq("id", aliasId).select().single();
+  if (error) {
+    if (/hidden/.test(error.message)) throw new Error("Exécute d'abord supabase/migrations/0002_alias_hidden.sql dans Supabase.");
+    throw error;
+  }
+  if (hidden) {
+    const ids = await googleEventIdsForAlias(alias.alias);
+    if (ids.length) await db().from("calendar_events").delete().in("id", ids);
+  }
 }
 
 /** Fusionne `sourceId` dans `targetId` : cours, événements, chapitres, alias, puis suppression. */

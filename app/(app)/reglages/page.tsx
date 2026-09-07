@@ -5,6 +5,7 @@ import { SubjectsManager } from "@/components/settings/SubjectsManager";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { embeddingsAvailable } from "@/lib/ai/embeddings";
 import { listAliases, listSubjects } from "@/lib/db/subjects";
+import { db } from "@/lib/supabase/admin";
 import { getGoogleStatus, isGoogleConfigured, listCalendars } from "@/lib/google";
 
 export const metadata: Metadata = { title: "Réglages" };
@@ -21,6 +22,12 @@ export default async function SettingsPage({ searchParams }: PageProps<"/reglage
     listAliases(),
   ]);
   const calendars = google ? await listCalendars().catch(() => []) : [];
+  // « primary » est un alias Google : on l'affiche sous son vrai identifiant pour que le sélecteur pointe le bon agenda.
+  const selectedCalendarId =
+    google?.calendar_id === "primary" ? (calendars.find((c) => c.primary)?.id ?? "primary") : (google?.calendar_id ?? "primary");
+  const { count: googleEventCount } = google
+    ? await db().from("calendar_events").select("id", { count: "exact", head: true }).eq("source", "google")
+    : { count: 0 };
 
   const checks = [
     { label: "Supabase", ok: !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY },
@@ -38,8 +45,9 @@ export default async function SettingsPage({ searchParams }: PageProps<"/reglage
           configured={isGoogleConfigured()}
           connected={!!google}
           email={google?.email ?? null}
-          calendarId={google?.calendar_id ?? "primary"}
+          calendarId={selectedCalendarId}
           calendars={calendars}
+          googleEventCount={googleEventCount ?? 0}
           lastSyncedAt={google?.last_synced_at ?? null}
           flash={googleParam}
           reason={googleReason}
