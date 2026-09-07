@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage({ searchParams }: PageProps<"/reglages">) {
   const params = await searchParams;
   const googleParam = typeof params.google === "string" ? params.google : null;
+  const googleReason = typeof params.reason === "string" ? params.reason : null;
 
   const [google, subjects, aliases] = await Promise.all([
     getGoogleStatus().catch(() => null),
@@ -41,6 +42,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/reglage
           calendars={calendars}
           lastSyncedAt={google?.last_synced_at ?? null}
           flash={googleParam}
+          reason={googleReason}
           redirectUri={`${(process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "")}/api/google/callback`}
         />
 

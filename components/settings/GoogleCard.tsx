@@ -14,15 +14,36 @@ type Props = {
   calendars: { id: string; name: string; primary: boolean }[];
   lastSyncedAt: string | null;
   flash: string | null;
+  reason: string | null;
   redirectUri: string;
 };
 
-export function GoogleCard({ configured, connected, email, calendarId, calendars, lastSyncedAt, flash, redirectUri }: Props) {
+function flashMessage(flash: string | null, reason: string | null) {
+  switch (flash) {
+    case "connected":
+      return "Google Calendar connecté et synchronisé.";
+    case "sync_error":
+      return `Compte connecté, mais la synchronisation a échoué : ${reason ?? "erreur inconnue"}`;
+    case "error":
+      if (reason && /client secret|invalid_client/i.test(reason)) {
+        return "Google refuse le secret client : GOOGLE_CLIENT_SECRET est incorrect (il doit commencer par GOCSPX-, voir la page Identifiants de Google Cloud). Corrige-le sur Vercel puis redéploie.";
+      }
+      if (reason && /redirect_uri/i.test(reason)) {
+        return "L'URI de redirection n'est pas déclarée dans Google Cloud (voir ci-dessous).";
+      }
+      return `La connexion Google a échoué : ${reason ?? "réessaie"}`;
+    case "not_configured":
+      return "Renseigne d'abord GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, APP_URL et TOKEN_ENCRYPTION_KEY.";
+    default:
+      return null;
+  }
+}
+
+export function GoogleCard({ configured, connected, email, calendarId, calendars, lastSyncedAt, flash, reason, redirectUri }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [message, setMessage] = useState<string | null>(
-    flash === "connected" ? "Google Calendar connecté." : flash === "error" ? "La connexion Google a échoué. Réessaie." : flash === "not_configured" ? "Renseigne d'abord GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, APP_URL et TOKEN_ENCRYPTION_KEY." : null,
-  );
+  const [message, setMessage] = useState<string | null>(flashMessage(flash, reason));
+  const isError = flash === "error" || flash === "sync_error";
 
   return (
     <section className="card px-5 py-5">
@@ -119,7 +140,7 @@ export function GoogleCard({ configured, connected, email, calendarId, calendars
           )}
         </div>
       )}
-      {message && <p className="mt-3 text-xs text-accent">{message}</p>}
+      {message && <p className={`mt-3 text-xs ${isError && message === flashMessage(flash, reason) ? "text-danger" : "text-accent"}`}>{message}</p>}
     </section>
   );
 }
