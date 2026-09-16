@@ -8,7 +8,7 @@ import { CourseStatusPoller } from "@/components/course/CourseStatusPoller";
 import { CourseTitle } from "@/components/course/CourseTitle";
 import { CourseStatusBadge } from "@/components/ui/StatusBadge";
 import { listChapters } from "@/lib/db/chapters";
-import { docxDownloadUrl, getCourse } from "@/lib/db/courses";
+import { getCourse, sourceFileDownloadUrl } from "@/lib/db/courses";
 import { listSubjects } from "@/lib/db/subjects";
 import { fmtDay } from "@/lib/dates";
 
@@ -25,10 +25,10 @@ export default async function CoursePage({ params }: PageProps<"/cours/[id]">) {
   const course = await getCourse(id);
   if (!course) notFound();
 
-  const [subjects, chapters, docxUrl] = await Promise.all([
+  const [subjects, chapters, sourceUrl] = await Promise.all([
     listSubjects(),
     listChapters(),
-    course.docx_path ? docxDownloadUrl(course.docx_path).catch(() => null) : Promise.resolve(null),
+    course.docx_path ? sourceFileDownloadUrl(course.docx_path).catch(() => null) : Promise.resolve(null),
   ]);
 
   return (
@@ -84,9 +84,9 @@ export default async function CoursePage({ params }: PageProps<"/cours/[id]">) {
             <Link href={`/cours/${course.id}/editer`} className="btn-secondary">
               <PenLine size={16} /> Modifier le texte
             </Link>
-            {docxUrl && (
-              <a href={docxUrl} className="btn-secondary" download={course.docx_name ?? undefined}>
-                <Download size={16} /> {course.docx_name ?? "Fichier Word"}
+            {sourceUrl && (
+              <a href={sourceUrl} className="btn-secondary" download={course.docx_name ?? undefined}>
+                <Download size={16} /> {course.docx_name ?? "Fichier original"}
               </a>
             )}
           </div>
@@ -97,7 +97,7 @@ export default async function CoursePage({ params }: PageProps<"/cours/[id]">) {
             ) : course.content_text ? (
               <div className="prose-course whitespace-pre-wrap">{course.content_text}</div>
             ) : (
-              <p className="text-sm text-text-3">Aucun texte. Modifie le cours pour en saisir, ou télécharge le fichier Word original.</p>
+              <p className="text-sm text-text-3">Aucun texte. Modifie le cours pour en saisir, ou télécharge le fichier original.</p>
             )}
           </div>
         </article>

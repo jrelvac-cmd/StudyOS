@@ -27,7 +27,7 @@ export function CourseCard({ course }: { course: CourseWithMeta }) {
         <CourseStatusBadge status={course.status} classification={course.classification_status} />
         {course.docx_name && (
           <span className="flex items-center gap-1 text-[11px] text-text-3">
-            <FileText size={11} /> Word
+            <FileText size={11} /> {course.docx_name.toLowerCase().endsWith(".pdf") ? "PDF" : "Word"}
           </span>
         )}
       </div>

@@ -13,8 +13,10 @@ type Props = {
   className?: string;
 };
 
-/** Zone d'import d'un .docx : clic ou glisser-déposer, puis on file sur la page du cours créé. */
-export function DocxDropzone({ eventId, subjectId, date, compact, className }: Props) {
+const ACCEPTED = [".docx", ".pdf"];
+
+/** Zone d'import d'un cours (.docx ou .pdf) : clic ou glisser-déposer, puis on file sur la page du cours créé. */
+export function SourceFileDropzone({ eventId, subjectId, date, compact, className }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -23,8 +25,9 @@ export function DocxDropzone({ eventId, subjectId, date, compact, className }: P
 
   async function upload(file: File) {
     setError(null);
-    if (!file.name.toLowerCase().endsWith(".docx")) {
-      setError("Seuls les fichiers Word (.docx) sont acceptés.");
+    const ext = file.name.toLowerCase().split(".").pop();
+    if (!ext || !ACCEPTED.includes(`.${ext}`)) {
+      setError("Seuls les fichiers Word (.docx) ou PDF sont acceptés.");
       return;
     }
     setBusy(true);
@@ -74,13 +77,13 @@ export function DocxDropzone({ eventId, subjectId, date, compact, className }: P
         )}
       >
         {busy ? <Loader2 size={compact ? 18 : 24} className="animate-spin text-accent" /> : <FileUp size={compact ? 18 : 24} className="text-accent" />}
-        <div className="text-sm font-medium">{busy ? "Import en cours…" : "Importer un fichier Word"}</div>
-        {!compact && <div className="text-xs text-text-3">Glisse un .docx ici ou clique pour choisir</div>}
+        <div className="text-sm font-medium">{busy ? "Import en cours…" : "Importer un cours"}</div>
+        {!compact && <div className="text-xs text-text-3">Glisse un .docx ou .pdf ici, ou clique pour choisir</div>}
       </div>
       <input
         ref={inputRef}
         type="file"
-        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

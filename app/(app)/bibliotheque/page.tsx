@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Layers, Plus } from "lucide-react";
 import { LibraryFilters } from "@/components/library/LibraryFilters";
 import { CourseCard } from "@/components/library/CourseCard";
-import { DocxDropzone } from "@/components/course/DocxDropzone";
+import { SourceFileDropzone } from "@/components/course/SourceFileDropzone";
 import { Empty } from "@/components/ui/Empty";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { listChapters } from "@/lib/db/chapters";
@@ -59,13 +59,13 @@ export default async function LibraryPage({ searchParams }: PageProps<"/biblioth
             <div className="flex flex-col gap-4">
               <Empty
                 title="Ta bibliothèque est vide"
-                hint="Importe un fichier Word ou écris ton premier cours : il sera classé par matière et par chapitre automatiquement."
+                hint="Importe un fichier Word ou PDF, ou écris ton premier cours : il sera classé par matière et par chapitre automatiquement."
               >
                 <Link href="/cours/nouveau" className="btn-primary">
                   <Plus size={16} /> Écrire un cours
                 </Link>
               </Empty>
-              <DocxDropzone />
+              <SourceFileDropzone />
             </div>
           )
         ) : (

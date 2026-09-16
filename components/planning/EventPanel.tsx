@@ -9,7 +9,7 @@ import type { EventWithSubject } from "@/lib/db/events";
 import type { Subject } from "@/lib/db/types";
 import { fmtInstant, localParts } from "@/lib/dates";
 import { Dialog } from "@/components/ui/Dialog";
-import { DocxDropzone } from "@/components/course/DocxDropzone";
+import { SourceFileDropzone } from "@/components/course/SourceFileDropzone";
 
 type Props = {
   event: EventWithSubject;
@@ -139,7 +139,7 @@ export function EventPanel({ event, subjects, onClose }: Props) {
           >
             <PenLine size={16} /> Écrire le cours
           </Link>
-          <DocxDropzone eventId={event.id} subjectId={event.subject_id} date={dayKey} compact />
+          <SourceFileDropzone eventId={event.id} subjectId={event.subject_id} date={dayKey} compact />
         </div>
 
         {event.source === "manual" && (
