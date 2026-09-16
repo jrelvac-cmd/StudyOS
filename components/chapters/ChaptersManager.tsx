@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, GitMerge, Loader2, Pencil, Trash2, X } from "lucide-react";
-import { confirmChapterAction, deleteChapterAction, mergeChaptersAction, renameChapterAction } from "@/lib/actions";
+import { Check, GitMerge, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { confirmChapterAction, createChapterAction, deleteChapterAction, mergeChaptersAction, renameChapterAction } from "@/lib/actions";
 import type { ChapterWithCounts } from "@/lib/db/chapters";
 import type { Subject } from "@/lib/db/types";
 import { Empty } from "@/components/ui/Empty";
@@ -13,26 +13,83 @@ import { cn } from "@/lib/utils";
 type Props = { chapters: ChapterWithCounts[]; subjects: Subject[] };
 
 export function ChaptersManager({ chapters, subjects }: Props) {
-  const grouped = subjects
-    .map((s) => ({ subject: s, chapters: chapters.filter((c) => c.subject_id === s.id) }))
-    .filter((g) => g.chapters.length > 0);
-
-  if (grouped.length === 0) {
-    return <Empty title="Aucun chapitre" hint="Les chapitres apparaissent au fur et à mesure que l'IA analyse tes cours." />;
+  if (subjects.length === 0) {
+    return <Empty title="Aucune matière" hint="Connecte Google Calendar ou écris un premier cours pour qu'une matière apparaisse ici." />;
   }
 
   return (
     <div className="stagger flex flex-col gap-6">
-      {grouped.map(({ subject, chapters: list }) => (
-        <section key={subject.id}>
-          <h2 className="mb-2 text-sm font-semibold text-accent">{subject.name}</h2>
-          <ul className="card divide-y divide-border">
-            {list.map((ch) => (
-              <ChapterRow key={ch.id} chapter={ch} siblings={list.filter((c) => c.id !== ch.id)} />
-            ))}
-          </ul>
-        </section>
-      ))}
+      {subjects.map((subject) => {
+        const list = chapters.filter((c) => c.subject_id === subject.id);
+        return (
+          <section key={subject.id}>
+            <h2 className="mb-2 text-sm font-semibold text-accent">{subject.name}</h2>
+            {list.length > 0 && (
+              <ul className="card mb-2 divide-y divide-border">
+                {list.map((ch) => (
+                  <ChapterRow key={ch.id} chapter={ch} siblings={list.filter((c) => c.id !== ch.id)} />
+                ))}
+              </ul>
+            )}
+            <AddChapter subjectId={subject.id} />
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function AddChapter({ subjectId }: { subjectId: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function create() {
+    if (!title.trim()) return;
+    start(async () => {
+      const r = await createChapterAction(subjectId, title);
+      if (!r.ok) {
+        setError(r.error);
+        return;
+      }
+      setTitle("");
+      setOpen(false);
+      router.refresh();
+    });
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="btn-ghost px-2 py-1.5 text-xs">
+        <Plus size={14} /> Nouveau chapitre
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-2">
+        <input
+          className="field"
+          placeholder="Titre du chapitre…"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") create();
+            if (e.key === "Escape") setOpen(false);
+          }}
+          autoFocus
+        />
+        <button type="button" onClick={create} disabled={pending || !title.trim()} className="icon-btn text-accent shrink-0" aria-label="Créer">
+          {pending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className="icon-btn shrink-0" aria-label="Annuler">
+          <X size={16} />
+        </button>
+      </div>
+      {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
 }

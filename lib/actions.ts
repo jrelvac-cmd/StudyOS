@@ -240,6 +240,18 @@ export async function confirmChapterAction(id: string) {
   revalidateAll();
 }
 
+/** Créé par Julien lui-même, indépendamment de tout cours : toujours confirmé. */
+export async function createChapterAction(subjectId: string, title: string): Promise<Result> {
+  try {
+    if (!title.trim()) return { ok: false, error: "Titre vide" };
+    await findOrCreateChapter(subjectId, title, "confirmed");
+    revalidateAll();
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
 export async function mergeChaptersAction(sourceId: string, targetId: string): Promise<Result> {
   try {
     await dbMergeChapters(sourceId, targetId);

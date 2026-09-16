@@ -1,5 +1,5 @@
-import { findOrCreateChapter, listChapters } from "@/lib/db/chapters";
-import { getCourse, replaceChunks, setCourseChapters, updateCourse } from "@/lib/db/courses";
+import { listChapters } from "@/lib/db/chapters";
+import { getCourse, updateCourse, replaceChunks } from "@/lib/db/courses";
 import { createSubject } from "@/lib/db/subjects";
 import type { ClassificationStatus } from "@/lib/db/types";
 import { chunkText } from "./chunk";
@@ -7,10 +7,11 @@ import { classifyCourse } from "./classify";
 import { embed } from "./embeddings";
 
 /**
- * Pipeline d'analyse d'un cours : classification matière/chapitre, enregistrée
- * aussitôt, puis indexation (passages + embeddings). Si les embeddings
- * échouent, les passages sont gardés sans vecteur : la recherche plein texte
- * prend le relais. Idempotent : relancer ré-analyse.
+ * Pipeline d'analyse d'un cours : déduit la matière et PROPOSE un chapitre
+ * (existant ou un titre de nouveau chapitre), sans jamais créer ni rattacher
+ * quoi que ce soit lui-même — c'est Julien qui crée ses chapitres et classe
+ * ses cours, la proposition n'est qu'un pré-remplissage qu'il valide ou non.
+ * Puis indexation (passages + embeddings) pour l'agent. Idempotent.
  */
 export async function analyzeCourse(courseId: string) {
   const course = await getCourse(courseId);
@@ -33,24 +34,26 @@ export async function analyzeCourse(courseId: string) {
     if (!subjectId && result.subject_name) subjectId = (await createSubject(result.subject_name)).id;
 
     let classification: ClassificationStatus;
-    const chapterIds: string[] = [];
+    let suggestedChapterId: string | null = null;
+    const suggestedTitles: string[] = [];
     if (result.is_annex || !subjectId) {
       classification = result.is_annex ? "annex" : "to_verify";
     } else {
-      const chapterStatus = result.confidence === "low" ? "to_verify" : "confirmed";
       for (const ch of result.chapters) {
         const existing = ch.existing_chapter_id ? known.find((k) => k.id === ch.existing_chapter_id) : null;
-        const chapter = existing ?? (await findOrCreateChapter(subjectId, ch.title, chapterStatus));
-        if (!chapterIds.includes(chapter.id)) chapterIds.push(chapter.id);
+        if (existing) suggestedChapterId ??= existing.id;
+        else if (!suggestedTitles.includes(ch.title)) suggestedTitles.push(ch.title);
       }
-      classification = chapterIds.length === 0 ? "to_verify" : result.confidence === "high" ? "confirmed" : "to_verify";
+      classification = "to_verify";
     }
-    await setCourseChapters(courseId, chapterIds);
+
     await updateCourse(courseId, {
       subject_id: subjectId,
       title: course.title.trim() || result.title,
       ai_summary: result.summary,
       classification_status: classification,
+      ai_suggested_chapter_id: suggestedChapterId,
+      ai_suggested_chapter_title: suggestedTitles.join(" / ") || null,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erreur inconnue";

@@ -51,6 +51,9 @@ export type Course = {
   classification_status: ClassificationStatus;
   ai_summary: string | null;
   ai_error: string | null;
+  /** Proposition de l'IA, jamais appliquée seule : l'un ou l'autre, jamais les deux. */
+  ai_suggested_chapter_id: string | null;
+  ai_suggested_chapter_title: string | null;
   created_at: string;
   updated_at: string;
 };

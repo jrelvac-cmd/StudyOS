@@ -12,11 +12,18 @@ type Props = { course: CourseWithMeta; subjects: Subject[]; chapters: Chapter[] 
 export function ClassificationEditor({ course, subjects, chapters }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const hasLinkedChapters = course.chapters.length > 0;
   const [subjectId, setSubjectId] = useState(course.subject_id ?? "");
-  const [chapterIds, setChapterIds] = useState<string[]>(course.chapters.map((c) => c.id));
+  const [chapterIds, setChapterIds] = useState<string[]>(() =>
+    hasLinkedChapters ? course.chapters.map((c) => c.id) : course.ai_suggested_chapter_id ? [course.ai_suggested_chapter_id] : [],
+  );
   const [annex, setAnnex] = useState(course.classification_status === "annex");
-  const [newChapter, setNewChapter] = useState("");
+  const [newChapter, setNewChapter] = useState(() =>
+    !hasLinkedChapters && !course.ai_suggested_chapter_id ? (course.ai_suggested_chapter_title ?? "") : "",
+  );
   const [message, setMessage] = useState<string | null>(null);
+  const suggestedChapterId = !hasLinkedChapters ? course.ai_suggested_chapter_id : null;
+  const isSuggestedNew = !hasLinkedChapters && !course.ai_suggested_chapter_id && !!course.ai_suggested_chapter_title;
 
   const subjectChapters = chapters.filter((c) => c.subject_id === subjectId);
   const dirty =
@@ -57,9 +64,13 @@ export function ClassificationEditor({ course, subjects, chapters }: Props) {
     <div className={cn("card flex flex-col gap-4 px-4 py-4", proposed && "border-accent/40")}>
       <div>
         <h2 className="text-sm font-semibold">Classement</h2>
-        {proposed && <p className="mt-0.5 text-xs text-text-2">Proposition de l&apos;IA à vérifier : corrige si besoin, puis valide.</p>}
-        {course.classification_status === "pending" && course.status === "ready" && (
-          <p className="mt-0.5 text-xs text-text-2">Ce cours n&apos;est pas encore classé.</p>
+        {proposed && (suggestedChapterId || isSuggestedNew) && (
+          <p className="mt-0.5 text-xs text-text-2">
+            Suggestion de l&apos;IA pré-remplie ci-dessous — rien n&apos;est appliqué tant que tu ne valides pas.
+          </p>
+        )}
+        {proposed && !suggestedChapterId && !isSuggestedNew && (
+          <p className="mt-0.5 text-xs text-text-2">Ce cours n&apos;est pas encore classé : choisis ou crée un chapitre.</p>
         )}
       </div>
 
@@ -118,7 +129,7 @@ export function ClassificationEditor({ course, subjects, chapters }: Props) {
                           {on && <Check size={11} strokeWidth={3} />}
                         </span>
                         <span className="flex-1 truncate">{ch.title}</span>
-                        {ch.status === "to_verify" && <span className="text-[10px] text-text-3">à vérifier</span>}
+                        {ch.id === suggestedChapterId && <span className="text-[10px] text-accent">suggéré</span>}
                       </button>
                     </li>
                   );
@@ -136,6 +147,9 @@ export function ClassificationEditor({ course, subjects, chapters }: Props) {
                   <Plus size={16} />
                 </span>
               </div>
+              {isSuggestedNew && newChapter === course.ai_suggested_chapter_title && (
+                <p className="mt-1 text-[11px] text-text-3">Titre suggéré par l&apos;IA — modifie-le si besoin.</p>
+              )}
             </>
           ) : (
             <p className="text-xs text-text-3">Choisis d&apos;abord une matière.</p>
