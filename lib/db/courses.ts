@@ -127,25 +127,6 @@ export async function sourceFileDownloadUrl(path: string) {
   return data.signedUrl;
 }
 
-const SOURCE_CONTENT_TYPES: Record<string, string> = {
-  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  pdf: "application/pdf",
-};
-
-/** Conserve le fichier original (.docx ou .pdf) tel quel, à côté du texte extrait. */
-export async function uploadSourceFile(courseId: string, file: File) {
-  const ext = file.name.toLowerCase().split(".").pop() ?? "";
-  const path = `${courseId}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
-  const { error } = await db()
-    .storage.from("courses")
-    .upload(path, Buffer.from(await file.arrayBuffer()), {
-      contentType: SOURCE_CONTENT_TYPES[ext] ?? "application/octet-stream",
-      upsert: false,
-    });
-  if (error) throw error;
-  return path;
-}
-
 export async function countCourses() {
   const { count } = await db().from("courses").select("id", { count: "exact", head: true });
   return count ?? 0;
