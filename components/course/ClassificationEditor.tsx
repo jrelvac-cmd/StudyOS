@@ -13,17 +13,20 @@ export function ClassificationEditor({ course, subjects, chapters }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const hasLinkedChapters = course.chapters.length > 0;
+  // Un cours peut porter plusieurs sujets (nouveau chapitre en cours de route) : chaque titre est proposé
+  // séparément, jamais collé en un seul (créer « A / B / C » comme titre unique n'aurait aucun sens).
+  const suggestedTitles = course.ai_suggested_chapter_title ? course.ai_suggested_chapter_title.split(" / ") : [];
+  const singleSuggestion = suggestedTitles.length === 1 ? suggestedTitles[0] : null;
+
   const [subjectId, setSubjectId] = useState(course.subject_id ?? "");
   const [chapterIds, setChapterIds] = useState<string[]>(() =>
     hasLinkedChapters ? course.chapters.map((c) => c.id) : course.ai_suggested_chapter_id ? [course.ai_suggested_chapter_id] : [],
   );
   const [annex, setAnnex] = useState(course.classification_status === "annex");
-  const [newChapter, setNewChapter] = useState(() =>
-    !hasLinkedChapters && !course.ai_suggested_chapter_id ? (course.ai_suggested_chapter_title ?? "") : "",
-  );
+  const [newChapter, setNewChapter] = useState(() => (!hasLinkedChapters && !course.ai_suggested_chapter_id ? (singleSuggestion ?? "") : ""));
   const [message, setMessage] = useState<string | null>(null);
   const suggestedChapterId = !hasLinkedChapters ? course.ai_suggested_chapter_id : null;
-  const isSuggestedNew = !hasLinkedChapters && !course.ai_suggested_chapter_id && !!course.ai_suggested_chapter_title;
+  const isSuggestedNew = !hasLinkedChapters && !course.ai_suggested_chapter_id && suggestedTitles.length > 0;
 
   const subjectChapters = chapters.filter((c) => c.subject_id === subjectId);
   const dirty =
@@ -147,8 +150,20 @@ export function ClassificationEditor({ course, subjects, chapters }: Props) {
                   <Plus size={16} />
                 </span>
               </div>
-              {isSuggestedNew && newChapter === course.ai_suggested_chapter_title && (
+              {isSuggestedNew && singleSuggestion && newChapter === singleSuggestion && (
                 <p className="mt-1 text-[11px] text-text-3">Titre suggéré par l&apos;IA — modifie-le si besoin.</p>
+              )}
+              {isSuggestedNew && suggestedTitles.length > 1 && (
+                <div className="mt-2">
+                  <p className="mb-1 text-[11px] text-text-3">Plusieurs sujets identifiés — clique pour en reprendre un :</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {suggestedTitles.map((t) => (
+                      <button key={t} type="button" onClick={() => setNewChapter(t)} className="badge pressable hover:border-accent/50">
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </>
           ) : (
