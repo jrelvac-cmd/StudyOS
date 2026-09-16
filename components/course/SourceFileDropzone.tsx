@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileUp, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -15,39 +16,59 @@ type Props = {
 
 const ACCEPTED = [".docx", ".pdf"];
 
-/** Zone d'import d'un cours (.docx ou .pdf) : clic ou glisser-déposer, puis on file sur la page du cours créé. */
+type Item = {
+  key: string;
+  name: string;
+  status: "uploading" | "done" | "error";
+  courseId?: string;
+  error?: string;
+};
+
+/** Zone d'import de cours (.docx ou .pdf) : clic ou glisser-déposer, un ou plusieurs fichiers à la fois. */
 export function SourceFileDropzone({ eventId, subjectId, date, compact, className }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const busy = items.some((i) => i.status === "uploading");
 
-  async function upload(file: File) {
-    setError(null);
+  async function uploadOne(file: File, key: string): Promise<Item> {
     const ext = file.name.toLowerCase().split(".").pop();
+    let result: Item;
     if (!ext || !ACCEPTED.includes(`.${ext}`)) {
-      setError("Seuls les fichiers Word (.docx) ou PDF sont acceptés.");
-      return;
-    }
-    setBusy(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      if (eventId) form.append("eventId", eventId);
-      if (subjectId) form.append("subjectId", subjectId);
-      if (date) form.append("date", date);
-      const res = await fetch("/api/courses/import", { method: "POST", body: form });
-      const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
-      if (!res.ok || !data.id) {
-        setError(data.error ?? "Import impossible.");
-        return;
+      result = { key, name: file.name, status: "error", error: "Format non accepté (.docx ou .pdf seulement)." };
+    } else {
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        if (eventId) form.append("eventId", eventId);
+        if (subjectId) form.append("subjectId", subjectId);
+        if (date) form.append("date", date);
+        const res = await fetch("/api/courses/import", { method: "POST", body: form });
+        const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+        result =
+          !res.ok || !data.id
+            ? { key, name: file.name, status: "error", error: data.error ?? "Import impossible." }
+            : { key, name: file.name, status: "done", courseId: data.id };
+      } catch {
+        result = { key, name: file.name, status: "error", error: "Connexion impossible." };
       }
-      router.push(`/cours/${data.id}`);
-    } catch {
-      setError("Import impossible.");
-    } finally {
-      setBusy(false);
+    }
+    setItems((cur) => cur.map((i) => (i.key === key ? result : i)));
+    return result;
+  }
+
+  async function uploadAll(files: File[]) {
+    if (!files.length) return;
+    const batch: Item[] = files.map((f, i) => ({ key: `${Date.now()}-${i}-${f.name}`, name: f.name, status: "uploading" }));
+    setItems((cur) => [...cur, ...batch]);
+    // Séquentiel : plusieurs analyses IA en parallèle n'apporteraient rien et compliqueraient le suivi par fichier.
+    const results: Item[] = [];
+    for (let i = 0; i < files.length; i++) results.push(await uploadOne(files[i], batch[i].key));
+
+    // Un seul fichier réussi : on file directement sur sa page, comme avant.
+    if (results.length === 1 && results[0].status === "done" && results[0].courseId) {
+      router.push(`/cours/${results[0].courseId}`);
     }
   }
 
@@ -66,8 +87,7 @@ export function SourceFileDropzone({ eventId, subjectId, date, compact, classNam
         onDrop={(e) => {
           e.preventDefault();
           setOver(false);
-          const file = e.dataTransfer.files?.[0];
-          if (file) void upload(file);
+          void uploadAll(Array.from(e.dataTransfer.files ?? []));
         }}
         className={cn(
           "pressable flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-center transition-colors",
@@ -77,21 +97,42 @@ export function SourceFileDropzone({ eventId, subjectId, date, compact, classNam
         )}
       >
         {busy ? <Loader2 size={compact ? 18 : 24} className="animate-spin text-accent" /> : <FileUp size={compact ? 18 : 24} className="text-accent" />}
-        <div className="text-sm font-medium">{busy ? "Import en cours…" : "Importer un cours"}</div>
-        {!compact && <div className="text-xs text-text-3">Glisse un .docx ou .pdf ici, ou clique pour choisir</div>}
+        <div className="text-sm font-medium">{busy ? "Import en cours…" : "Importer un ou plusieurs cours"}</div>
+        {!compact && <div className="text-xs text-text-3">Glisse des .docx ou .pdf ici, ou clique pour choisir (plusieurs fichiers possibles)</div>}
       </div>
       <input
         ref={inputRef}
         type="file"
+        multiple
         accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void upload(file);
+          void uploadAll(Array.from(e.target.files ?? []));
           e.target.value = "";
         }}
       />
-      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+
+      {items.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {items.map((item) => (
+            <li key={item.key} className="flex items-start gap-2 text-xs">
+              {item.status === "uploading" && <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin text-text-3" />}
+              {item.status === "done" && <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-accent" />}
+              {item.status === "error" && <AlertCircle size={14} className="mt-0.5 shrink-0 text-danger" />}
+              <div className="min-w-0 flex-1">
+                {item.status === "done" && item.courseId ? (
+                  <Link href={`/cours/${item.courseId}`} className="truncate font-medium text-text hover:text-accent">
+                    {item.name}
+                  </Link>
+                ) : (
+                  <span className="truncate text-text-2">{item.name}</span>
+                )}
+                {item.error && <div className="mt-0.5 text-danger">{item.error}</div>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

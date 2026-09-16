@@ -35,6 +35,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Seuls les fichiers Word (.docx) ou PDF sont acceptés." }, { status: 400 });
   }
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "Fichier trop lourd (15 Mo max)." }, { status: 400 });
+  if (file.size === 0) {
+    // Cas fréquent : un fichier OneDrive/Drive « en ligne uniquement » jamais vraiment téléchargé sur l'appareil.
+    return NextResponse.json(
+      {
+        error:
+          "Ce fichier est vide (0 octet). S'il vient de OneDrive ou Google Drive, il n'est peut-être disponible qu'en ligne : ouvre-le une fois dans l'explorateur de fichiers (ou clic droit → « Toujours conserver sur cet appareil ») puis réessaie.",
+      },
+      { status: 400 },
+    );
+  }
 
   const eventId = (form.get("eventId") as string | null) || null;
   let subjectId = (form.get("subjectId") as string | null) || null;
@@ -75,8 +85,9 @@ export async function POST(request: Request) {
   }
 
   if (!text.trim()) {
+    const reason = ext === "pdf" ? "probablement un scan sans texte, ou le fichier est corrompu" : "le fichier est peut-être corrompu ou vide côté serveur (mal synchronisé)";
     await updateCourse(course.id, {
-      ai_error: `Impossible d'extraire le texte du fichier ${ext === "pdf" ? "PDF" : "Word"} (probablement un scan sans texte). Le fichier original reste téléchargeable.`,
+      ai_error: `Impossible d'extraire le texte du fichier ${ext === "pdf" ? "PDF" : "Word"} (${reason}). Le fichier original reste téléchargeable.`,
     });
     return NextResponse.json({ id: course.id, extracted: false });
   }
