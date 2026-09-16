@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/supabase/admin";
+import { MAX_UPLOAD_BYTES } from "@/lib/uploadLimits";
 
 const ALLOWED_EXT = new Set(["docx", "pdf"]);
-
-/** 40 Mo : plafond que l'app impose elle-même (le stockage accepterait davantage). */
-export const MAX_BYTES = 40 * 1024 * 1024;
 
 /**
  * Prépare un import : renvoie une URL signée vers laquelle le navigateur envoie
@@ -20,8 +18,8 @@ export async function POST(request: Request) {
   if (!ALLOWED_EXT.has(ext)) {
     return NextResponse.json({ error: "Seuls les fichiers Word (.docx) ou PDF sont acceptés." }, { status: 400 });
   }
-  if (typeof body?.size === "number" && body.size > MAX_BYTES) {
-    return NextResponse.json({ error: `Fichier trop lourd (${Math.round(MAX_BYTES / 1024 / 1024)} Mo max).` }, { status: 400 });
+  if (typeof body?.size === "number" && body.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json({ error: `Fichier trop lourd (${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} Mo max).` }, { status: 400 });
   }
 
   const path = `uploads/${crypto.randomUUID()}-${filename.replace(/[^\w.\-]+/g, "_")}`;

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, FileUp, Loader2, Upload, X } from "lucide-react";
+import { MAX_UPLOAD_BYTES } from "@/lib/uploadLimits";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -15,7 +16,6 @@ type Props = {
 };
 
 const ACCEPTED = [".docx", ".pdf"];
-const MAX_BYTES = 40 * 1024 * 1024;
 
 type Staged = { key: string; file: File; tooBig: boolean; badExt: boolean };
 type Result = { key: string; name: string; status: "uploading" | "done" | "error"; courseId?: string; error?: string };
@@ -47,7 +47,7 @@ export function SourceFileDropzone({ eventId, subjectId, date, compact, classNam
       return {
         key: `${Date.now()}-${i}-${file.name}`,
         file,
-        tooBig: file.size > MAX_BYTES,
+        tooBig: file.size > MAX_UPLOAD_BYTES,
         badExt: !ext || !ACCEPTED.includes(`.${ext}`),
       };
     });
@@ -134,7 +134,7 @@ export function SourceFileDropzone({ eventId, subjectId, date, compact, classNam
       >
         <FileUp size={compact ? 18 : 24} className="text-accent" />
         <div className="text-sm font-medium">Choisir un ou plusieurs cours</div>
-        {!compact && <div className="text-xs text-text-3">Glisse des .docx ou .pdf ici, ou clique pour choisir ({Math.round(MAX_BYTES / 1024 / 1024)} Mo max par fichier)</div>}
+        {!compact && <div className="text-xs text-text-3">Glisse des .docx ou .pdf ici, ou clique pour choisir ({Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} Mo max par fichier)</div>}
       </div>
       <input
         ref={inputRef}
