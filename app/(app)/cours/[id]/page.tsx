@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Download, PenLine } from "lucide-react";
 import { ClassificationEditor } from "@/components/course/ClassificationEditor";
 import { CourseActions } from "@/components/course/CourseActions";
+import { CourseFileViewer } from "@/components/course/CourseFileViewer";
 import { CourseStatusPoller } from "@/components/course/CourseStatusPoller";
 import { CourseTitle } from "@/components/course/CourseTitle";
 import { CourseStatusBadge } from "@/components/ui/StatusBadge";
@@ -91,15 +92,12 @@ export default async function CoursePage({ params }: PageProps<"/cours/[id]">) {
             )}
           </div>
 
-          <div className="card mt-6 px-5 py-5 md:px-7 md:py-6">
-            {course.content_html ? (
-              <div className="prose-course" dangerouslySetInnerHTML={{ __html: course.content_html }} />
-            ) : course.content_text ? (
-              <div className="prose-course whitespace-pre-wrap">{course.content_text}</div>
-            ) : (
-              <p className="text-sm text-text-3">Aucun texte. Modifie le cours pour en saisir, ou télécharge le fichier original.</p>
-            )}
-          </div>
+          <CourseFileViewer
+            contentHtml={course.content_html}
+            contentText={course.content_text}
+            sourceUrl={sourceUrl}
+            isPdf={(course.docx_name ?? "").toLowerCase().endsWith(".pdf")}
+          />
         </article>
 
         <aside className="flex flex-col gap-4 md:sticky md:top-6 md:self-start">

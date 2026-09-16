@@ -121,8 +121,9 @@ export async function replaceChunks(courseId: string, chunks: { content: string;
   if (error) throw error;
 }
 
+/** Valable 1 h : assez pour garder un PDF ouvert en lecture sans que le lien expire en cours de route. */
 export async function sourceFileDownloadUrl(path: string) {
-  const { data, error } = await db().storage.from("courses").createSignedUrl(path, 60 * 10);
+  const { data, error } = await db().storage.from("courses").createSignedUrl(path, 60 * 60);
   if (error) throw error;
   return data.signedUrl;
 }
